@@ -17,13 +17,23 @@ The reset indicator uses a Nerd Font icon. Install a Nerd Font in your terminal 
 
 ## Installation
 
-Once published, install both the server and TUI entry points with one command:
+Install the server plugin:
 
 ```sh
-opencode plugin opencode-usage-bars --global
+opencode2 plugin add opencode-usage-bars
 ```
 
-The server entry point resolves connected credentials and fetches usage. The TUI entry point renders the sidebar. OpenCode detects the package's `./server` and `./tui` exports and configures both.
+Then add the package to the `plugins` array in `~/.config/opencode/cli.json` so the TUI entry point loads:
+
+```json
+{
+  "plugins": ["opencode-usage-bars"]
+}
+```
+
+Preserve any existing entries in that array. Restart the OpenCode TUI after changing `cli.json`.
+
+The server entry point resolves connected credentials and fetches usage. The TUI entry point renders the sidebar.
 
 Codex requires an OpenAI connection using ChatGPT OAuth. OpenCode Go requires an OpenCode Go API key connection.
 
