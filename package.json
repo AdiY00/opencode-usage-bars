@@ -25,7 +25,7 @@
     "build": "bun build src/index.ts src/tui.tsx --outdir dist --target bun --external '@opencode-ai/*' --external '@opentui/*' --external solid-js && bunx tsc -p tsconfig.build.json",
     "typecheck": "bunx tsc --noEmit",
     "check": "bun run typecheck && bun run build",
-    "prepack": "bun run check"
+    "prepare": "bun run check"
   },
   "dependencies": {
     "@opencode-ai/plugin": "0.0.0-next-17403"
