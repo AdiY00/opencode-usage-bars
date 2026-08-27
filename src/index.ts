@@ -12,6 +12,7 @@ type Window = {
 
 export default Plugin.define({
   id: "usage-bars",
+  tui: true,
   setup: async (ctx) => {
     const refresh = async () => {
       const [codex, go] = await Promise.all([

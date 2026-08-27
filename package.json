@@ -1,6 +1,6 @@
 {
   "name": "opencode-usage-bars",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "description": "Pace-aware Codex and OpenCode Go usage bars for the OpenCode TUI",
   "type": "module",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "prepack": "bun run check"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "0.0.0-next-17403"
+    "@opencode-ai/plugin": "0.0.0-beta-18387"
   },
   "peerDependencies": {
     "@opentui/core": "0.0.0-20260808-9ecf7c0a",
