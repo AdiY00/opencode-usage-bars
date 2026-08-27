@@ -5,27 +5,18 @@
   "type": "module",
   "license": "MIT",
   "files": [
-    "dist"
+    "src"
   ],
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./server": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./tui": {
-      "import": "./dist/tui.js",
-      "types": "./dist/tui.d.ts"
-    }
+    ".": "./src/index.ts",
+    "./server": "./src/index.ts",
+    "./tui": "./src/tui.tsx"
   },
   "scripts": {
     "build": "bun build src/index.ts src/tui.tsx --outdir dist --target bun --external '@opencode-ai/*' --external '@opentui/*' --external solid-js && bunx tsc -p tsconfig.build.json",
     "typecheck": "bunx tsc --noEmit",
     "check": "bun run typecheck && bun run build",
-    "prepare": "bun run check"
+    "prepack": "bun run check"
   },
   "dependencies": {
     "@opencode-ai/plugin": "0.0.0-next-17403"
