@@ -3,27 +3,14 @@ import { Plugin } from "@opencode-ai/plugin/tui"
 import { RGBA, parseColor, type BoxRenderable, type ColorInput, type TextRenderable } from "@opentui/core"
 import { For, Show, createSignal, onCleanup } from "solid-js"
 import { readFileSync } from "node:fs"
+import { cacheFile } from "./paths"
+import type { ProviderUsage, UsageCache, UsageWindow } from "./types"
 
-const cacheFile = `${process.env.XDG_CACHE_HOME ?? `${process.env.HOME}/.cache`}/opencode/usage-bars.json`
-
-type Limits = {
-  providers?: Array<{
-    name: string
-    account?: string
-    id?: string
-    windows?: Array<{ label?: string; usedPercent: number; durationSeconds?: number; resetsAt: number }>
-    error?: string
-  }>
-  error?: string
-}
-
-type Provider = NonNullable<Limits["providers"]>[number]
-type UsageWindow = NonNullable<Provider["windows"]>[number]
 type CollapseState = { open: Record<string, boolean> }
 
 function ProviderView(props: {
   context: Plugin.Context
-  provider: Provider
+  provider: ProviderUsage
   showAccount: boolean
   open: boolean
   toggle: (open: boolean) => void
@@ -32,17 +19,13 @@ function ProviderView(props: {
   let arrow: TextRenderable | undefined
   let summaryText: TextRenderable | undefined
   let details: BoxRenderable | undefined
-  const summaryWindow = () => props.provider.windows?.find((item) =>
-      props.provider.name === "Codex"
-        ? item.label === "Weekly" || item.durationSeconds === 7 * 24 * 60 * 60
-        : item.label === "Rolling",
-    )
+  const summaryWindow = () => props.provider.windows?.find((item) => item.summary)
   const summary = () => {
     const window = summaryWindow()
     return window ? `${Math.round(100 - Math.max(0, Math.min(100, window.usedPercent)))}%` : undefined
   }
   const summaryColor = () => {
-    if (props.provider.name === "Codex") return windowPaceColor(summaryWindow())
+    if (props.provider.summaryPace !== "worst") return windowPaceColor(summaryWindow())
 
     const worst = props.provider.windows?.reduce<UsageWindow | undefined>(
       (result, window) => paceAhead(window) > paceAhead(result) ? window : result,
@@ -145,7 +128,7 @@ function ProviderView(props: {
 }
 
 function View(props: { context: Plugin.Context }) {
-  const [limits, setLimits] = createSignal<Limits>(readLimits())
+  const [limits, setLimits] = createSignal<UsageCache>(readLimits())
   const [collapse, setCollapse] = props.context.storage.store<CollapseState>("usage-bars-collapse", {
     initial: { open: {} },
   })
@@ -200,9 +183,9 @@ function label(seconds: number) {
   return "Limit"
 }
 
-function readLimits(): Limits {
+function readLimits(): UsageCache {
   try {
-    return JSON.parse(readFileSync(cacheFile, "utf8")) as Limits
+    return JSON.parse(readFileSync(cacheFile, "utf8")) as UsageCache
   } catch {
     return { error: "Waiting for usage data" }
   }
