@@ -8,11 +8,20 @@ type GoWindow = {
 export const opencodeGo: UsageProvider = {
   name: "OpenCode Go",
   async sources(context) {
-    const connection = await context.integration.connection.active("opencode-go")
-    const credential = connection ? await context.integration.connection.resolve(connection) : undefined
-    if (credential?.type !== "key") throw new Error("Connect OpenCode Go with an API key")
+    const integration = await context.integration.get({ integrationID: "opencode-go" })
+    const accounts = (await Promise.all((integration.data?.connections ?? []).map(async (connection) => {
+      if (connection.type !== "credential") return
+      const credential = await context.integration.connection.resolve(connection).catch(() => undefined)
+      if (credential?.type !== "key") return
+      return { connection, credential }
+    }))).filter((account) => account !== undefined)
 
-    return [{
+    if (accounts.length === 0) throw new Error("Connect OpenCode Go with an API key")
+
+    return accounts.map(({ connection, credential }) => ({
+      account: connection.label,
+      id: connection.id,
+      integrationID: "opencode-go",
       summaryPace: "worst",
       async fetch() {
         const response = await fetch("https://opencode.ai/zen/go/v1/usage", {
@@ -37,6 +46,6 @@ export const opencodeGo: UsageProvider = {
           return [{ label, usedPercent: window.percent, durationSeconds, resetsAt, summary: label === "Rolling" }]
         })
       },
-    }]
+    }))
   },
 }

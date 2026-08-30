@@ -2,7 +2,8 @@
 import { Plugin } from "@opencode-ai/plugin/tui"
 import { RGBA, parseColor, type BoxRenderable, type ColorInput, type TextRenderable } from "@opentui/core"
 import { For, Show, createSignal, onCleanup } from "solid-js"
-import { readFileSync } from "node:fs"
+import { readFileSync, watch } from "node:fs"
+import { basename, dirname } from "node:path"
 import { cacheFile } from "./paths"
 import type { ProviderUsage, UsageCache, UsageWindow } from "./types"
 
@@ -33,6 +34,13 @@ function ProviderView(props: {
     )
     return windowPaceColor(worst)
   }
+  const active = () => {
+    if (!props.provider.integrationID || !props.provider.id) return false
+    const integration = props.context.data.location.integration
+      .list()
+      ?.find((item) => item.id === props.provider.integrationID)
+    return integration?.connections.find((connection) => connection.type === "credential")?.id === props.provider.id
+  }
 
   return (
     <box>
@@ -41,6 +49,9 @@ function ProviderView(props: {
           <text fg={props.context.theme.text.default}>{props.provider.name}</text>
           <Show when={props.showAccount && props.provider.account}>
             <text fg={props.context.theme.text.subdued} attributes={0}> ({props.provider.account})</text>
+          </Show>
+          <Show when={props.showAccount && active()}>
+            <text fg={props.context.theme.text.feedback.success.default}> ●</text>
           </Show>
         </box>
         <box flexDirection="row" gap={1}>
@@ -136,7 +147,13 @@ function View(props: { context: Plugin.Context }) {
 
   refresh()
   const timer = setInterval(refresh, 30_000)
-  onCleanup(() => clearInterval(timer))
+  const watcher = watch(dirname(cacheFile), (_event, filename) => {
+    if (filename?.toString() === basename(cacheFile)) refresh()
+  })
+  onCleanup(() => {
+    watcher.close()
+    clearInterval(timer)
+  })
 
   return (
     <box>

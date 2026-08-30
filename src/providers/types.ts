@@ -1,7 +1,7 @@
 import type { Plugin } from "@opencode-ai/plugin"
 import type { ProviderUsage, UsageWindow } from "../types"
 
-export type UsageSource = Pick<ProviderUsage, "account" | "id" | "summaryPace"> & {
+export type UsageSource = Pick<ProviderUsage, "account" | "id" | "integrationID" | "summaryPace"> & {
   fetch: () => Promise<UsageWindow[]>
 }
 

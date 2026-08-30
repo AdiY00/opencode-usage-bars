@@ -10,6 +10,7 @@ export type ProviderUsage = {
   name: string
   account?: string
   id?: string
+  integrationID?: string
   windows?: UsageWindow[]
   error?: string
   summaryPace?: "window" | "worst"

@@ -20,6 +20,17 @@ export default Plugin.define({
 
     safeRefresh()
     const timer = setInterval(safeRefresh, 60 * 1000)
-    return () => clearInterval(timer)
+    const controller = new AbortController()
+    void (async () => {
+      for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+        if (event.type === "credential.updated") safeRefresh()
+      }
+    })().catch((error) => {
+      if (!controller.signal.aborted) console.error("Usage bars event subscription failed", error)
+    })
+    return () => {
+      controller.abort()
+      clearInterval(timer)
+    }
   },
 })

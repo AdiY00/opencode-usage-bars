@@ -23,6 +23,7 @@ export const codex: UsageProvider = {
     return accounts.map(({ connection, credential, accountID }) => ({
       account: connection.label,
       id: connection.id,
+      integrationID: "openai",
       async fetch() {
         const response = await fetch("https://chatgpt.com/backend-api/wham/usage", {
           headers: {
