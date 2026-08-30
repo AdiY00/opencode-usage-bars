@@ -1,6 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 import { Plugin } from "@opencode-ai/plugin/tui"
-import { RGBA, parseColor, type ColorInput } from "@opentui/core"
+import { RGBA, parseColor, type BoxRenderable, type ColorInput, type TextRenderable } from "@opentui/core"
 import { For, Show, createSignal, onCleanup } from "solid-js"
 import { readFileSync } from "node:fs"
 
@@ -26,8 +26,12 @@ function ProviderView(props: {
   provider: Provider
   showAccount: boolean
   open: boolean
-  toggle: () => void
+  toggle: (open: boolean) => void
 }) {
+  let open = props.open
+  let arrow: TextRenderable | undefined
+  let summaryText: TextRenderable | undefined
+  let details: BoxRenderable | undefined
   const summaryWindow = () => props.provider.windows?.find((item) =>
       props.provider.name === "Codex"
         ? item.label === "Weekly" || item.durationSeconds === 7 * 24 * 60 * 60
@@ -57,19 +61,32 @@ function ProviderView(props: {
           </Show>
         </box>
         <box flexDirection="row" gap={1}>
-          <Show when={!props.open && summary()}>
-            <text fg={summaryColor() ?? props.context.theme.text.subdued} selectable={false}>{summary()}</text>
+          <Show when={summary()}>
+            <text
+              ref={(value) => summaryText = value}
+              visible={!open}
+              fg={summaryColor() ?? props.context.theme.text.subdued}
+              selectable={false}
+            >{summary()}</text>
           </Show>
           <text
+            ref={(value) => arrow = value}
             fg={props.context.theme.text.default}
             selectable={false}
-            onMouseDown={props.toggle}
+            onMouseDown={() => {
+              open = !open
+              if (arrow) arrow.content = open ? "▼" : "▶"
+              if (summaryText) summaryText.visible = !open
+              if (details) details.visible = open
+              props.context.renderer.requestRender()
+              props.toggle(open)
+            }}
           >
-            {props.open ? "▼" : "▶"}
+            {open ? "▼" : "▶"}
           </text>
         </box>
       </box>
-      <Show when={props.open}>
+      <box ref={(value) => details = value} visible={open}>
         <Show when={props.provider.windows?.length} fallback={
           <text fg={props.context.theme.text.subdued}>{props.provider.error ?? "No usage data"}</text>
         }>
@@ -122,7 +139,7 @@ function ProviderView(props: {
             }}
           </For>
         </Show>
-      </Show>
+      </box>
     </box>
   )
 }
@@ -154,9 +171,11 @@ function View(props: { context: Plugin.Context }) {
               provider={provider}
               showAccount={showAccount()}
               open={collapse.open[key] ?? true}
-              toggle={() => void setCollapse((state) => {
-                state.open[key] = !(state.open[key] ?? true)
-              })}
+              toggle={(open) => {
+                void setCollapse((state) => {
+                  state.open[key] = open
+                })
+              }}
             />
           }}
         </For>

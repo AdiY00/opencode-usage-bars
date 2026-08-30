@@ -1,41 +1,49 @@
 # opencode-usage-bars
 
-Pace-aware Codex and OpenCode Go usage bars for the OpenCode TUI sidebar.
+Usage bars for the OpenCode V2 TUI sidebar.
 
 The filled bar shows remaining usage. The `|` marker shows how much time remains in the limit window. Bar color compares usage with elapsed time: green is safely on pace, yellow is ahead of pace, and red is substantially ahead or exhausted.
 
+## Installation
+
+Install the plugin:
+
+```sh
+opencode2 plugin add opencode-usage-bars
+```
+
+The plugin resolves connected credentials, fetches usage, and renders the bars in the TUI sidebar.
+
+![Usage bars in the OpenCode sidebar](docs/images/usage-bars-overview.png)
+
+## Screenshots
+
+<table>
+  <tr>
+    <th>Expanded usage bars</th>
+    <th>Collapsed summaries</th>
+  </tr>
+  <tr>
+    <td valign="top"><img src="docs/images/usage-bars-expanded.png" alt="Expanded Codex and OpenCode Go usage bars"></td>
+    <td valign="top"><img src="docs/images/usage-bars-collapsed.png" alt="Collapsed account usage summaries"></td>
+  </tr>
+</table>
+
 ## Features
 
-- Codex 5-hour and weekly limits
-- Multiple Codex accounts with their stored OpenCode account labels
-- OpenCode Go rolling, weekly, and monthly limits
 - Pace-aware green-to-yellow-to-red color gradient
 - Collapsible account summaries colored by their worst limit
 - Reset timestamps with fixed-width day and time fields
 
 The reset indicator uses a Nerd Font icon. Install a Nerd Font in your terminal for the intended appearance.
 
-## Installation
+## Supported Providers
 
-Install the server plugin:
+> [!NOTE]
+> This is the current provider list. Support for additional providers is planned.
 
-```sh
-opencode2 plugin add opencode-usage-bars
-```
-
-Then add the package to the `plugins` array in `~/.config/opencode/cli.json` so the TUI entry point loads:
-
-```json
-{
-  "plugins": ["opencode-usage-bars"]
-}
-```
-
-Preserve any existing entries in that array. Restart the OpenCode TUI after changing `cli.json`.
-
-The server entry point resolves connected credentials and fetches usage. The TUI entry point renders the sidebar.
-
-Codex requires an OpenAI connection using ChatGPT OAuth. OpenCode Go requires an OpenCode Go API key connection.
+- **Codex:** 5-hour and weekly limits, with support for multiple accounts and their stored OpenCode account labels.
+- **OpenCode Go:** rolling, weekly, and monthly limits.
 
 ## Development
 
@@ -48,4 +56,4 @@ For local development, reference `src/index.ts` as a server plugin and `src/tui.
 
 ## Limitations
 
-The server and TUI must run on the same machine because the usage cache is local. Remote-server TUI connections are not currently supported.
+Usage data is currently cached locally, so the server and TUI must run on the same machine. Remote-server TUI connections do not display usage bars.

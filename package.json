@@ -1,7 +1,7 @@
 {
   "name": "opencode-usage-bars",
-  "version": "0.1.0",
-  "description": "Pace-aware Codex and OpenCode Go usage bars for the OpenCode TUI",
+  "version": "0.1.1",
+  "description": "Usage bars for the OpenCode V2 TUI sidebar",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -25,16 +25,16 @@
     "prepack": "bun run check"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "0.0.0-beta-18387"
+    "@opencode-ai/plugin": "beta"
   },
   "peerDependencies": {
-    "@opentui/core": "0.0.0-20260808-9ecf7c0a",
-    "@opentui/solid": "0.0.0-20260808-9ecf7c0a",
+    "@opentui/core": ">=0.5.9",
+    "@opentui/solid": ">=0.5.9",
     "solid-js": ">=1.9.0"
   },
   "devDependencies": {
-    "@opentui/core": "0.0.0-20260808-9ecf7c0a",
-    "@opentui/solid": "0.0.0-20260808-9ecf7c0a",
+    "@opentui/core": "^0.5.9",
+    "@opentui/solid": "^0.5.9",
     "@types/bun": "latest",
     "solid-js": "1.9.12",
     "typescript": "5.8.2"
