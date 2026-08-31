@@ -187,8 +187,8 @@ function View(props: { context: Plugin.Context }) {
 export default Plugin.define({
   id: "usage-bars-tui",
   setup(context) {
-    context.ui.slot({
-      replace: "sidebar.footer",
+    return context.ui.slot({
+      prepend: "sidebar.footer",
       render: () => <View context={context} />,
     })
   },
