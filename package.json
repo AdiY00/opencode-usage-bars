@@ -1,6 +1,6 @@
 {
   "name": "opencode-usage-bars",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Usage bars for the OpenCode V2 TUI sidebar",
   "type": "module",
   "license": "MIT",
