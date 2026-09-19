@@ -1,10 +1,9 @@
-import { Plugin } from "@opencode-ai/plugin"
+import { Plugin } from "@opencode/plugin"
 import { writeCache } from "./cache"
 import { loadProvider, providers } from "./providers"
 
 export default Plugin.define({
   id: "usage-bars",
-  tui: true,
   setup: async (ctx) => {
     const refresh = async () => {
       const usage = await Promise.all(providers.map((provider) => loadProvider(provider, ctx)))

@@ -1,4 +1,4 @@
-import type { Plugin } from "@opencode-ai/plugin"
+import type { Plugin } from "@opencode/plugin"
 import type { ProviderUsage, UsageWindow } from "../types"
 
 export type UsageSource = Pick<ProviderUsage, "account" | "id" | "integrationID" | "summaryPace"> & {

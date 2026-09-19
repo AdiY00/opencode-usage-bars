@@ -1,5 +1,5 @@
 /** @jsxImportSource @opentui/solid */
-import { Plugin } from "@opencode-ai/plugin/tui"
+import { Plugin } from "@opencode/plugin/tui"
 import { RGBA, parseColor, type BoxRenderable, type ColorInput, type TextRenderable } from "@opentui/core"
 import { For, Show, createSignal, onCleanup } from "solid-js"
 import { readFileSync, watch } from "node:fs"
@@ -46,12 +46,12 @@ function ProviderView(props: {
     <box>
       <box flexDirection="row" justifyContent="space-between">
         <box flexDirection="row">
-          <text fg={props.context.theme.text.default}>{props.provider.name}</text>
+          <text fg={props.context.theme.text.base}>{props.provider.name}</text>
           <Show when={props.showAccount && props.provider.account}>
-            <text fg={props.context.theme.text.subdued} attributes={0}> ({props.provider.account})</text>
+            <text fg={props.context.theme.text.muted} attributes={0}> ({props.provider.account})</text>
           </Show>
           <Show when={props.showAccount && active()}>
-            <text fg={props.context.theme.text.feedback.success.default}> ●</text>
+            <text fg={props.context.theme.text.feedback.success.base}> ●</text>
           </Show>
         </box>
         <box flexDirection="row" gap={1}>
@@ -59,13 +59,13 @@ function ProviderView(props: {
             <text
               ref={(value) => summaryText = value}
               visible={!open}
-              fg={summaryColor() ?? props.context.theme.text.subdued}
+              fg={summaryColor() ?? props.context.theme.text.muted}
               selectable={false}
             >{summary()}</text>
           </Show>
           <text
             ref={(value) => arrow = value}
-            fg={props.context.theme.text.default}
+            fg={props.context.theme.text.base}
             selectable={false}
             onMouseDown={() => {
               open = !open
@@ -82,7 +82,7 @@ function ProviderView(props: {
       </box>
       <box ref={(value) => details = value} visible={open}>
         <Show when={props.provider.windows?.length} fallback={
-          <text fg={props.context.theme.text.subdued}>{props.provider.error ?? "No usage data"}</text>
+          <text fg={props.context.theme.text.muted}>{props.provider.error ?? "No usage data"}</text>
         }>
           <For each={props.provider.windows}>
             {(window) => {
@@ -96,16 +96,16 @@ function ProviderView(props: {
               return (
                 <box>
                   <box flexDirection="row" justifyContent="space-between">
-                    <text fg={props.context.theme.text.subdued}>{window.label ?? label(window.durationSeconds ?? 0)}</text>
-                    <text fg={props.context.theme.text.default}><b>{Math.round(remaining())}%</b></text>
+                    <text fg={props.context.theme.text.muted}>{window.label ?? label(window.durationSeconds ?? 0)}</text>
+                    <text fg={props.context.theme.text.base}><b>{Math.round(remaining())}%</b></text>
                   </box>
                   <box
                     width="100%"
                     height={1}
                     position="relative"
                     backgroundColor={tint(
-                      props.context.theme.background.default,
-                      props.context.theme.text.default,
+                      props.context.theme.background.base,
+                      props.context.theme.text.base,
                       0.12,
                     )}
                   >
@@ -126,7 +126,7 @@ function ProviderView(props: {
                     </Show>
                   </box>
                   <box flexDirection="row" justifyContent="flex-end">
-                    <text fg={props.context.theme.text.subdued}>󱛡 {formatReset(window.resetsAt)}</text>
+                    <text fg={props.context.theme.text.muted}>󱛡 {formatReset(window.resetsAt)}</text>
                   </box>
                 </box>
               )
@@ -157,10 +157,10 @@ function View(props: { context: Plugin.Context }) {
 
   return (
     <box>
-      <text fg={props.context.theme.text.default}><b>Usage limits</b></text>
+      <text fg={props.context.theme.text.base}><b>Usage limits</b></text>
       <Show
         when={limits()?.providers?.length}
-        fallback={<text fg={props.context.theme.text.subdued}>{limits()?.error ?? "Loading..."}</text>}
+        fallback={<text fg={props.context.theme.text.muted}>{limits()?.error ?? "Loading..."}</text>}
       >
         <For each={limits()?.providers}>
           {(provider) => {
