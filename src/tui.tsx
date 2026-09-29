@@ -15,6 +15,7 @@ function ProviderView(props: {
   showAccount: boolean
   open: boolean
   toggle: (open: boolean) => void
+  resetDates: Set<string>
 }) {
   let open = props.open
   let arrow: TextRenderable | undefined
@@ -85,7 +86,16 @@ function ProviderView(props: {
           <text fg={props.context.theme.text.muted}>{props.provider.error ?? "No usage data"}</text>
         }>
           <For each={props.provider.windows}>
-            {(window) => {
+            {(window, index) => {
+              const resetKey = JSON.stringify([
+                props.provider.id ?? props.provider.name,
+                window.label ?? window.durationSeconds ?? index(),
+              ])
+              let showResetDate = props.resetDates.has(resetKey)
+              let resetText: TextRenderable | undefined
+              const resetLabel = () => showResetDate
+                ? `󱛡 ${formatReset(window.resetsAt)}`
+                : `󰔟 ${formatRemaining(window.resetsAt)}`
               const used = () => clamp(window.usedPercent, 0, 100)
               const remaining = () => 100 - used()
               const elapsed = () => elapsedPercent(window)
@@ -126,7 +136,18 @@ function ProviderView(props: {
                     </Show>
                   </box>
                   <box flexDirection="row" justifyContent="flex-end">
-                    <text fg={props.context.theme.text.muted}>󱛡 {formatReset(window.resetsAt)}</text>
+                    <text
+                      ref={(value) => resetText = value}
+                      fg={props.context.theme.text.muted}
+                      selectable={false}
+                      onMouseDown={() => {
+                        showResetDate = !showResetDate
+                        if (showResetDate) props.resetDates.add(resetKey)
+                        else props.resetDates.delete(resetKey)
+                        if (resetText) resetText.content = resetLabel()
+                        props.context.renderer.requestRender()
+                      }}
+                    >{resetLabel()}</text>
                   </box>
                 </box>
               )
@@ -139,6 +160,7 @@ function ProviderView(props: {
 }
 
 function View(props: { context: Plugin.Context }) {
+  const resetDates = new Set<string>()
   const [limits, setLimits] = createSignal<UsageCache>(readLimits())
   const [collapse, setCollapse] = props.context.storage.store<CollapseState>("usage-bars-collapse", {
     initial: { open: {} },
@@ -170,6 +192,7 @@ function View(props: { context: Plugin.Context }) {
               context={props.context}
               provider={provider}
               showAccount={showAccount()}
+              resetDates={resetDates}
               open={collapse.open[key] ?? true}
               toggle={(open) => {
                 void setCollapse((state) => {
@@ -267,4 +290,13 @@ function formatReset(timestamp: number) {
     minute: "2-digit",
     hour12: false,
   }).format(new Date(timestamp * 1000))
+}
+
+function formatRemaining(timestamp: number) {
+  const minutes = Math.max(0, Math.ceil((timestamp * 1000 - Date.now()) / 60_000))
+  const days = Math.floor(minutes / (24 * 60))
+  const hours = Math.floor(minutes / 60) % 24
+  if (days > 0) return `${days}d ${hours}h`
+  if (hours > 0) return `${hours}h ${minutes % 60}m`
+  return `${minutes}m`
 }

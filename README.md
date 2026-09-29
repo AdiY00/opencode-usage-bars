@@ -33,9 +33,9 @@ The plugin resolves connected credentials, fetches usage, and renders the bars i
 
 - Pace-aware green-to-yellow-to-red color gradient
 - Collapsible account summaries colored by their worst limit
-- Reset timestamps with fixed-width day and time fields
+- Time remaining until reset by default; click to toggle the reset date and time
 
-The reset indicator uses a Nerd Font icon. Install a Nerd Font in your terminal for the intended appearance.
+The countdown uses an hourglass icon; the reset date and time use a calendar icon. These are Nerd Font icons. Install a Nerd Font in your terminal for the intended appearance.
 
 ## Supported Providers
 
