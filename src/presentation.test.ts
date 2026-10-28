@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { elapsedPercent, formatRemaining, label, paceColor, remaining } from "./presentation"
+import { elapsedPercent, formatRemaining, formatUsageTime, label, paceColor, providerSummary, remaining, resetCountdown, paceDescription, windowDescription } from "./presentation"
 import { usageSchema } from "./rpc"
 
 const now = 1_800_000_000_000
@@ -37,5 +37,47 @@ describe("desktop usage presentation", () => {
     expect(data.providers).toHaveLength(2)
     expect(data.providers![0]).not.toHaveProperty("token")
     expect(() => usageSchema.parse({ providers: [{ name: "Codex", windows: [{ usedPercent: "bad" }] }] })).toThrow()
+  })
+  test("tooltips distinguish even pace from a forecast and explain missing clocks", () => {
+    expect(windowDescription(window, now)).toContain("75% quota left")
+    expect(windowDescription(window, now)).toContain("not a burn-rate forecast")
+    expect(paceDescription(window, now)).toStartWith("Under even pace")
+    expect(paceDescription({ ...window, usedPercent: 50 }, now)).toStartWith("On even pace")
+    expect(paceDescription({ ...window, usedPercent: 80 }, now)).toStartWith("Ahead of even pace")
+    expect(paceDescription({ ...window, durationSeconds: undefined }, now)).toContain("unavailable")
+    expect(paceDescription({ ...window, resetsAt: 1 }, now)).toContain("awaiting updated usage")
+  })
+  test("expired readings are not presented as a new allowance", () => {
+    expect(resetCountdown({ ...window, resetsAt: 1 }, now)).toBe("Reset due")
+    expect(resetCountdown({ ...window, resetsAt: now / 1000 + 20 }, now)).toBe("Resets shortly")
+    expect(resetCountdown(window, now)).toBe("30m")
+    expect(remaining({ ...window, resetsAt: 1, usedPercent: 100 })).toBe(0)
+  })
+  test("RPC preserves explicit freshness metadata", () => {
+    expect(usageSchema.parse({ providers: [{ name: "Codex", stale: true, lastSuccessAt: "old", lastAttemptAt: "new", error: "503" }] }).providers![0])
+      .toMatchObject({ stale: true, lastSuccessAt: "old", lastAttemptAt: "new", error: "503" })
+  })
+  test("12-hour and 24-hour preferences apply to timestamps and reset dates", () => {
+    const afternoon = new Date(2026, 9, 28, 13, 5).getTime()
+    expect(formatUsageTime(afternoon, false, false, "en-US")).toBe("13:05")
+    expect(formatUsageTime(afternoon, true, false, "en-US")).toBe("01:05 PM")
+    expect(formatUsageTime(new Date(2026, 9, 28, 0, 5).getTime(), false, false, "en-US")).toBe("00:05")
+    expect(formatUsageTime(afternoon, false, true, "en-US")).toContain("13:05")
+    expect(formatUsageTime(afternoon, true, true, "en-US")).toContain("01:05 PM")
+    expect(formatUsageTime(new Date(afternoon).toISOString(), false, false, "en-US")).toBe("13:05")
+  })
+  test("collapsed summaries use the provider-designated window, not the first window", () => {
+    const summary = { ...window, summary: true, usedPercent: 60, label: "Weekly" }
+    const result = providerSummary({ name: "Codex", windows: [window, summary] }, now)
+    expect(result).toEqual({ remaining: 40, color: paceColor(summary, now), label: "Weekly" })
+    expect(providerSummary({ name: "Codex", error: "Unavailable" }, now)).toBeUndefined()
+    expect(providerSummary({ name: "Codex", windows: [window] }, now)).toBeUndefined()
+  })
+  test("worst-window summary colors do not change the summary percentage", () => {
+    const result = providerSummary({ name: "Go", summaryPace: "worst", windows: [
+      { ...window, summary: true, label: "Rolling" },
+      { ...window, usedPercent: 100, label: "Weekly" },
+    ] }, now)
+    expect(result).toEqual({ remaining: 75, color: "#ef5350", label: "Rolling" })
   })
 })

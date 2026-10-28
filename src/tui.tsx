@@ -48,6 +48,7 @@ function ProviderView(props: {
       <box flexDirection="row" justifyContent="space-between">
         <box flexDirection="row">
           <text fg={props.context.theme.text.base}>{props.provider.name}</text>
+          <Show when={props.provider.stale}><text fg={props.context.theme.text.muted}> (stale)</text></Show>
           <Show when={props.showAccount && props.provider.account}>
             <text fg={props.context.theme.text.muted} attributes={0}> ({props.provider.account})</text>
           </Show>
@@ -82,6 +83,9 @@ function ProviderView(props: {
         </box>
       </box>
       <box ref={(value) => details = value} visible={open}>
+        <Show when={props.provider.error && props.provider.windows?.length}>
+          <text fg={props.context.theme.text.muted}>{props.provider.error} · Last known usage{props.provider.lastSuccessAt ? ` (${new Date(props.provider.lastSuccessAt).toLocaleTimeString()})` : ""}</text>
+        </Show>
         <Show when={props.provider.windows?.length} fallback={
           <text fg={props.context.theme.text.muted}>{props.provider.error ?? "No usage data"}</text>
         }>

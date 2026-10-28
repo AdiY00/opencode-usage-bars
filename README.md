@@ -36,8 +36,15 @@ On desktop, run **Open usage limits** from the command palette, choose **Usage l
 - Pace-aware green-to-yellow-to-red color gradient
 - Collapsible account summaries colored by their worst limit
 - Time remaining until reset by default; click to toggle the reset date and time
+- Compact desktop rows with explicit “% left” labels and accessible pace descriptions
+- Desktop Refresh fetches fresh provider usage; overlapping refreshes share one request
+- Failed account reads retain last-known usage with a stale indicator and last-success time; credential changes clear old readings
+- Desktop reset countdown/date mode is shared across all bars; click any reset time to switch them together
+- The gear beside “Last checked” saves desktop 12/24-hour clock and countdown/date preferences
+- Click “Last checked” to switch the clock format for all displayed times
+- Collapsed desktop providers show their designated summary percentage, with the same pace-color rules as the TUI
 
-The countdown uses an hourglass icon; the reset date and time use a calendar icon. These are Nerd Font icons. Install a Nerd Font in your terminal for the intended appearance.
+The countdown uses an hourglass icon; the reset date and time use a calendar icon. The TUI uses Nerd Font icons; install a Nerd Font in your terminal for the intended appearance. Desktop uses SVG icons and does not require a Nerd Font.
 
 ## Supported Providers
 

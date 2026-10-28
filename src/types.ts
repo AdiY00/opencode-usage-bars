@@ -13,6 +13,9 @@ export type ProviderUsage = {
   integrationID?: string
   windows?: UsageWindow[]
   error?: string
+  stale?: boolean
+  lastSuccessAt?: string
+  lastAttemptAt?: string
   summaryPace?: "window" | "worst"
 }
 

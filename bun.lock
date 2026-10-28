@@ -6,6 +6,7 @@
       "name": "opencode-usage-bars",
       "dependencies": {
         "@opencode/plugin": "^2.2.0",
+        "effect": "4.0.1",
         "zod": "^4.1.8",
       },
       "devDependencies": {
