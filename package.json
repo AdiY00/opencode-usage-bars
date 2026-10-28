@@ -1,7 +1,7 @@
 {
   "name": "opencode-usage-bars",
   "version": "0.1.4",
-  "description": "Usage bars for the OpenCode V2 TUI sidebar",
+  "description": "Usage bars for the OpenCode V2 terminal and desktop",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -11,21 +11,27 @@
   "homepage": "https://github.com/AdiY00/opencode-usage-bars#readme",
   "bugs": "https://github.com/AdiY00/opencode-usage-bars/issues",
   "files": [
-    "src"
+    "src",
+    "dist/gui-experimental.cjs"
   ],
   "exports": {
     ".": "./src/index.ts",
     "./server": "./src/index.ts",
-    "./tui": "./src/tui.tsx"
+    "./tui": "./src/tui.tsx",
+    "./gui-experimental": "./dist/gui-experimental.cjs"
   },
   "scripts": {
-    "build": "bun build src/index.ts src/tui.tsx --outdir dist --target bun --external '@opencode/*' --external '@opentui/*' --external solid-js && bunx tsc -p tsconfig.build.json",
+    "build": "bun build src/index.ts src/tui.tsx --outdir dist --target bun --external '@opencode/*' --external '@opentui/*' --external solid-js && vite build && bunx tsc -p tsconfig.build.json",
+    "dev:gui": "vite build --watch",
+    "sync:desktop": "bun scripts/sync-desktop.ts",
+    "test": "bun test",
     "typecheck": "bunx tsc --noEmit",
-    "check": "bun run typecheck && bun run build",
+    "check": "bun run typecheck && bun run test && bun run build",
     "prepack": "bun run check"
   },
   "dependencies": {
-    "@opencode/plugin": "^2.0.9"
+    "@opencode/plugin": "^2.2.0",
+    "zod": "^4.1.8"
   },
   "peerDependencies": {
     "@opentui/core": ">=0.5.10",
@@ -37,7 +43,9 @@
     "@opentui/solid": "^0.5.10",
     "@types/bun": "latest",
     "solid-js": "1.9.12",
-    "typescript": "5.8.2"
+    "typescript": "5.8.2",
+    "vite": "^8.3.5",
+    "vite-plugin-solid": "^2.11.14"
   },
   "engines": {
     "bun": ">=1.3.0"

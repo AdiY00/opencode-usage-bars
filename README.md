@@ -1,6 +1,6 @@
 # opencode-usage-bars
 
-Usage bars for the OpenCode V2 TUI sidebar.
+Usage bars for the OpenCode V2 TUI sidebar and desktop GUI (OpenCode 2.2.0+).
 
 The filled bar shows remaining usage. The `|` marker shows how much time remains in the limit window. Bar color compares usage with elapsed time: green is safely on pace, yellow is ahead of pace, and red is substantially ahead or exhausted.
 
@@ -13,6 +13,8 @@ opencode2 plugin add opencode-usage-bars
 ```
 
 The plugin resolves connected credentials, fetches usage, and renders the bars in the TUI sidebar.
+
+On desktop, run **Open usage limits** from the command palette, choose **Usage limits** from the side panel's **+** menu, or open **Settings > Usage limits**. The desktop GUI API is experimental.
 
 ![Usage bars in the OpenCode sidebar](docs/images/usage-bars-overview.png)
 
@@ -52,8 +54,39 @@ bun install
 bun run check
 ```
 
-For local development, reference `src/index.ts` as a server plugin and `src/tui.tsx` as a CLI plugin. Both processes share usage data through `$XDG_CACHE_HOME/opencode/usage-bars.json`, or `~/.cache/opencode/usage-bars.json` when `XDG_CACHE_HOME` is unset.
+For local development, replace the npm package entry in your global `~/.config/opencode/opencode.json(c)` with the absolute path to this checkout:
+
+```jsonc
+{
+  "plugins": ["/absolute/path/to/opencode-usage-bars"]
+}
+```
+
+Run `bun run check` first to build the desktop bundle. Then use `bun run dev:gui` to rebuild and hot-reload desktop changes. The local directory loads the server, TUI, and GUI parts through `package.json`; do not also list a separate TUI entry in `cli.json`.
+
+The desktop reads usage through server RPC, without accessing local files or credentials. The TUI still shares usage through `$XDG_CACHE_HOME/opencode/usage-bars.json`, or `~/.cache/opencode/usage-bars.json` when `XDG_CACHE_HOME` is unset.
+
+### Windows desktop with a WSL server
+
+Desktop loads GUI plugins from its own Windows background server, not from connected WSL or remote servers. Keep the full plugin configured on the WSL server to collect usage, and install a GUI-only local copy on Windows:
+
+```sh
+bun run check
+bun run sync:desktop /mnt/c/Users/YOUR_USER/.config/opencode/local/usage-bars-gui --watch
+```
+
+Add this directory to **Windows** `C:/Users/YOUR_USER/.config/opencode/opencode.jsonc`, preserving any other plugins:
+
+```jsonc
+{
+  "plugins": ["C:/Users/YOUR_USER/.config/opencode/local/usage-bars-gui"]
+}
+```
+
+Run `bun run dev:gui` in another terminal. The sync watcher copies each rebuilt bundle to Windows, where Desktop reloads it. No npm package installation, UNC-path dependencies, or copied credentials are needed.
+
+Open a WSL session and run **Open usage limits**. The panel shows its source server and reads usage through that session's client and location. Switching servers clears the previous source's usage and cancels outstanding requests. The Settings page follows the current session when one is available; without a session it uses the desktop's own server, which needs the full plugin to provide usage.
 
 ## Limitations
 
-Usage data is currently cached locally, so the server and TUI must run on the same machine. Remote-server TUI connections do not display usage bars.
+The server and TUI must run on the same machine. Remote-server TUI connections do not display usage bars. Desktop can show a remote session's usage, but the full plugin must be installed on that server and the GUI must be installed on the desktop's own server.

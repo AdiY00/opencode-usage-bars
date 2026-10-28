@@ -1,20 +1,25 @@
 import { Plugin } from "@opencode/plugin"
 import { writeCache } from "./cache"
 import { loadProvider, providers } from "./providers"
+import { Usage } from "./rpc"
+import type { UsageCache } from "./types"
 
 export default Plugin.define({
   id: "usage-bars",
   setup: async (ctx) => {
+    let latest: UsageCache = { error: "Waiting for usage data" }
+    await ctx.rpc.register(Usage, { get: async () => latest })
     const refresh = async () => {
       const usage = await Promise.all(providers.map((provider) => loadProvider(provider, ctx)))
-      await writeCache({ providers: usage.flat(), updatedAt: new Date().toISOString() })
+      latest = { providers: usage.flat(), updatedAt: new Date().toISOString() }
+      await writeCache(latest)
     }
 
     const safeRefresh = () => void refresh().catch((error) =>
-      writeCache({
+      writeCache(latest = {
         error: error instanceof Error ? error.message : String(error),
         updatedAt: new Date().toISOString(),
-      }),
+      }).catch((error) => console.error("Usage bars cache write failed", error)),
     )
 
     safeRefresh()
