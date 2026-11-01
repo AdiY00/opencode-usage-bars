@@ -5,6 +5,7 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { claudeWindows, createClaudeAgent, readClaudeCredentials } from "./claude-agent"
 import { loadProvider } from "./types"
+import { createUsageRefresh } from "../refresh"
 
 const reset = "2026-11-06T06:00:00Z"
 const payload = {
@@ -64,8 +65,108 @@ test("Claude authentication errors stay scoped to its provider", async () => {
   }
 })
 
+test("Claude shares concurrent requests and caches successful usage across source discovery", async () => {
+  let requests = 0
+  let now = Date.now()
+  const response = Promise.withResolvers<void>()
+  const provider = createClaudeAgent({
+    now: () => now,
+    readCredentials: async () => ({ ...credentials, expiresAt: now + 60_000 }),
+    request: async () => { requests++; await response.promise; return Response.json(payload) },
+  })
+  const first = loadProvider(provider, context())
+  const second = loadProvider(provider, context())
+  response.resolve()
+  expect((await first)[0]!.windows).toEqual(claudeWindows(payload))
+  expect((await second)[0]!.windows).toEqual(claudeWindows(payload))
+  expect(requests).toBe(1)
+  now += 60_000
+  expect((await loadProvider(provider, context()))[0]!.windows).toEqual(claudeWindows(payload))
+  expect(requests).toBe(1)
+  now += 8 * 60_000
+  await loadProvider(provider, context())
+  expect(requests).toBe(1)
+  now += 60_000
+  await loadProvider(provider, context())
+  expect(requests).toBe(2)
+})
+
+test("Claude honors Retry-After across refreshes and recovers after the cooldown", async () => {
+  let requests = 0
+  let now = Date.now()
+  const provider = createClaudeAgent({
+    now: () => now,
+    readCredentials: async () => ({ ...credentials, expiresAt: now + 60_000 }),
+    request: async () => {
+      requests++
+      return requests === 1 ? new Response(null, { status: 429, headers: { "Retry-After": "1200" } }) : Response.json(payload)
+    },
+  })
+  expect((await loadProvider(provider, context()))[0]).toMatchObject({ retrying: true })
+  now += 60_000
+  const deferred = (await loadProvider(provider, context()))[0]!
+  expect(deferred.retrying).toBe(true)
+  expect(deferred.error).toBeUndefined()
+  expect(requests).toBe(1)
+  now += 19 * 60_000
+  const recovered = (await loadProvider(provider, context()))[0]!
+  expect(recovered.windows).toEqual(claudeWindows(payload))
+  expect(recovered.retrying).toBeUndefined()
+  expect(requests).toBe(2)
+})
+
+test("Claude backs off repeated 429s even when Retry-After is absent or invalid", async () => {
+  let requests = 0
+  let now = Date.now()
+  const provider = createClaudeAgent({
+    now: () => now,
+    readCredentials: async () => ({ ...credentials, expiresAt: now + 60_000 }),
+    request: async () => { requests++; return new Response(null, { status: 429, headers: { "Retry-After": "invalid" } }) },
+  })
+  await loadProvider(provider, context())
+  now += 60_000
+  await loadProvider(provider, context())
+  expect(requests).toBe(1)
+  now += 14 * 60_000
+  await loadProvider(provider, context())
+  expect(requests).toBe(2)
+  now += 15 * 60_000
+  await loadProvider(provider, context())
+  expect(requests).toBe(2)
+  now += 15 * 60_000
+  await loadProvider(provider, context())
+  expect(requests).toBe(3)
+})
+
+test("Claude accepts HTTP-date retry delays and retains stale readings during cooldown", async () => {
+  let requests = 0
+  let now = Date.parse("2026-11-01T10:00:00Z")
+  const retryAt = now + 40 * 60_000
+  const provider = createClaudeAgent({
+    now: () => now,
+    readCredentials: async () => ({ ...credentials, expiresAt: now + 60_000 }),
+    request: async () => {
+      requests++
+      return requests === 1 ? Response.json(payload) : new Response(null, { status: 429, headers: { "Retry-After": new Date(retryAt).toUTCString() } })
+    },
+  })
+  const usage = createUsageRefresh({ load: () => loadProvider(provider, context()), write: async () => {}, now: () => new Date(now).toISOString() })
+  const good = await usage.refresh()
+  now += 10 * 60_000
+  const limited = await usage.refresh()
+  expect(requests).toBe(2)
+  expect(limited.providers![0]).toMatchObject({ stale: true, retrying: true, windows: good.providers![0]!.windows, lastSuccessAt: good.providers![0]!.lastSuccessAt })
+  expect(limited.providers![0]!.error).toBeUndefined()
+  now = retryAt - 1000
+  await usage.refresh()
+  expect(requests).toBe(2)
+  now = retryAt
+  await usage.refresh()
+  expect(requests).toBe(3)
+})
+
 test("Claude reports rejected tokens, HTTP failures, and malformed responses without response bodies", async () => {
-  for (const [status, body, message] of [[401, "private details", "login was rejected"], [429, "private details", "429"], [500, "private details", "500"], [200, "private details", "Invalid Claude usage response"], [200, "{}", "No supported Claude usage windows"]] as const) {
+  for (const [status, body, message] of [[401, "private details", "login was rejected"], [500, "private details", "500"], [200, "private details", "Invalid Claude usage response"], [200, "{}", "No supported Claude usage windows"]] as const) {
     const provider = createClaudeAgent({ readCredentials: async () => credentials, request: async () => new Response(body, { status }) })
     const result = await loadProvider(provider, context())
     expect(result[0]!.error).toContain(message)

@@ -188,7 +188,7 @@ function View(props: { context: Plugin.Context }) {
         when={limits()?.providers?.length}
         fallback={<text fg={props.context.theme.text.muted}>{limits()?.error ?? "Loading..."}</text>}
       >
-        <For each={limits()?.providers}>
+        <For each={limits()?.providers?.filter(provider => !provider.retrying || provider.windows?.length)}>
           {(provider) => {
             const key = provider.id ?? provider.name
             const showAccount = () => (limits()?.providers?.filter((item) => item.name === provider.name).length ?? 0) > 1

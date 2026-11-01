@@ -13,6 +13,7 @@ export type ProviderUsage = {
   integrationID?: string
   windows?: UsageWindow[]
   error?: string
+  retrying?: boolean
   stale?: boolean
   lastSuccessAt?: string
   lastAttemptAt?: string

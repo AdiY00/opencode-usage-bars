@@ -14,7 +14,7 @@ opencode2 plugin add opencode-usage-bars
 
 The plugin resolves connected credentials, fetches usage, and renders the bars in the TUI sidebar.
 
-On desktop, run **Open usage limits** from the command palette, choose **Usage limits** from the side panel's **+** menu, or open **Settings > Usage limits**. The desktop GUI API is experimental.
+On desktop, open a session and run **Open usage limits** from the command palette, or choose **Usage limits** at the end of the side panel's **+** menu. The usage content stays at the bottom of its panel and scrolls when needed. The desktop GUI API is experimental.
 
 ![Usage bars in the OpenCode sidebar](docs/images/usage-bars-overview.png)
 
@@ -40,7 +40,7 @@ On desktop, run **Open usage limits** from the command palette, choose **Usage l
 - Desktop Refresh fetches fresh provider usage; overlapping refreshes share one request
 - Failed account reads retain last-known usage with a stale indicator and last-success time; credential changes clear old readings
 - Desktop reset countdown/date mode is shared across all bars; click any reset time to switch them together
-- The gear beside “Last checked” saves desktop 12/24-hour clock and countdown/date preferences
+- The gear beside “Last checked” saves desktop 12/24-hour clock, countdown/date, and hide-server-name preferences
 - Click “Last checked” to switch the clock format for all displayed times
 - Collapsed desktop providers show their designated summary percentage, with the same pace-color rules as the TUI
 
@@ -54,6 +54,8 @@ The countdown uses an hourglass icon; the reset date and time use a calendar ico
 - **Codex:** 5-hour and weekly limits, with support for multiple accounts and their stored OpenCode account labels.
 - **OpenCode Go:** rolling, weekly, and monthly limits.
 - **Claude Agent:** Claude Code subscription session and weekly limits, including per-model weekly limits when available. Connect Claude Agent in OpenCode and run `claude auth login` on the server machine. Credentials are read from `$CLAUDE_CONFIG_DIR/.credentials.json` or `~/.claude/.credentials.json`; on macOS, the default login is read from the Keychain. Custom macOS config directories currently require a credentials file. The plugin does not refresh tokens: run `claude` if the login expires. This provider uses an undocumented Anthropic endpoint, which can change without notice.
+
+Claude usage checks are cached for ten minutes. On HTTP 429, the provider retries silently after at least 15 minutes, increasing the delay up to two hours and honoring longer `Retry-After` values. Last-known bars remain visible with a stale indicator; until the first successful reading, the provider stays hidden during cooldown. Manual refresh does not bypass caching or cooldown. Separate server processes and other usage tools can still share Anthropic's request limit.
 
 ## Development
 
@@ -93,7 +95,7 @@ Add this directory to **Windows** `C:/Users/YOUR_USER/.config/opencode/opencode.
 
 Run `bun run dev:gui` in another terminal. The sync watcher copies each rebuilt bundle to Windows, where Desktop reloads it. No npm package installation, UNC-path dependencies, or copied credentials are needed.
 
-Open a WSL session and run **Open usage limits**. The panel shows its source server and reads usage through that session's client and location. Switching servers clears the previous source's usage and cancels outstanding requests. The Settings page follows the current session when one is available; without a session it uses the desktop's own server, which needs the full plugin to provide usage.
+Open a WSL session and run **Open usage limits**. The panel shows its source server and reads usage through that session's client and location. Switching servers clears the previous source's usage and cancels outstanding requests.
 
 ## Limitations
 

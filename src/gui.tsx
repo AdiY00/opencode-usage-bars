@@ -1,5 +1,5 @@
 /** @jsxImportSource solid-js */
-import { Command, MenuItem, Panel, Plugin, SettingsPage, Store, Style, createKeyed, usePlugin, type PanelTab, type SessionRef } from "@opencode/plugin/gui"
+import { Command, MenuItem, Panel, Plugin, Store, Style, createKeyed, usePlugin, type PanelTab, type SessionRef } from "@opencode/plugin/gui"
 import { Schema } from "effect"
 import { For, Show, createSignal, createUniqueId, onCleanup, onMount } from "solid-js"
 import { createStore, reconcile } from "solid-js/store"
@@ -10,7 +10,7 @@ import { usageSource } from "./usage-source"
 
 const definition = Plugin.define({
   stores: {
-    display: Store.global(Schema.Struct({ hour12: Schema.Boolean, showResetDate: Schema.Boolean }), {
+    display: Store.global(Schema.Struct({ hour12: Schema.Boolean, showResetDate: Schema.Boolean, hideServerName: Schema.optionalKey(Schema.Boolean) }), {
       hour12: false,
       showResetDate: false,
     }),
@@ -62,9 +62,9 @@ function DisplaySettings() {
   let popup!: HTMLDivElement
   const position = () => {
     const rect = trigger.getBoundingClientRect()
-    const width = popup.getBoundingClientRect().width
+    const { width, height } = popup.getBoundingClientRect()
     popup.style.right = `${Math.max(8, Math.min(window.innerWidth - rect.right, window.innerWidth - width - 8))}px`
-    const above = rect.top >= 120
+    const above = rect.top >= height + 14
     popup.style.bottom = above ? `${window.innerHeight - rect.top + 6}px` : "auto"
     popup.style.top = above ? "auto" : `${rect.bottom + 6}px`
   }
@@ -82,12 +82,16 @@ function DisplaySettings() {
           <span aria-hidden="true">Show reset date</span>
           <div class="usage-bars-settings-control"><ctx.ui.Switch label="Show reset date" hideLabel checked={prefs.value.showResetDate} onChange={checked => prefs.update(state => { state.showResetDate = checked })} /></div>
         </div>
+        <div class="usage-bars-settings-row">
+          <span aria-hidden="true">Hide server name</span>
+          <div class="usage-bars-settings-control"><ctx.ui.Switch label="Hide server name" hideLabel checked={prefs.value.hideServerName ?? false} onChange={checked => prefs.update(state => { state.hideServerName = checked })} /></div>
+        </div>
       </div>
     </div>
   </>
 }
 
-function UsageView(props: { session?: SessionRef }) {
+function UsageView(props: { session: SessionRef }) {
   const ctx = usePlugin<typeof definition>()
   const time = (timestamp: string) => formatUsageTime(timestamp, ctx.stores.display.value.hour12)
   const [usage, setUsage] = createStore<UsageCache>({ error: "Loading usage…" })
@@ -108,7 +112,7 @@ function UsageView(props: { session?: SessionRef }) {
     onCleanup(() => observer.disconnect())
   })
   let refresh = () => {}
-  createKeyed(() => usageSource(ctx.client, props.session ?? ctx.sessions.current()), source => {
+  createKeyed(() => usageSource(ctx.client, props.session), source => {
     const controller = new AbortController()
     let pending = false
     setSourceName(source.name)
@@ -147,37 +151,39 @@ function UsageView(props: { session?: SessionRef }) {
   })
   return <section class="usage-bars-view" aria-label="Usage limits" style={{ "--usage-bars-reset-width": `calc(18px + ${resetTextWidth()}px)` }}>
     <div ref={resetMeasure} class="usage-bars-reset-measure" aria-hidden="true"><For each={resetTexts()}>{text => <span>{text}</span>}</For></div>
-    <div class="usage-bars-row">
-      <div class="usage-bars-heading"><h2>Usage limits</h2><Show when={sourceName()}><span class="usage-bars-source">{sourceName()}</span></Show></div>
-      <button class="usage-bars-refresh" disabled={busy()} aria-busy={busy()} onClick={() => refresh()} title="Fetch fresh usage from the selected session's server"><UsageIcon kind="refresh" />{busy() ? "Loading…" : "Refresh"}</button>
-    </div>
-    <Show when={error()}><p role="status">{error()}</p></Show>
-    <Show when={usage.providers?.length} fallback={<p>{usage.error ?? "No connected usage providers"}</p>}>
-      <For each={usage.providers}>{provider => <details open class="usage-bars-provider">
-        <summary>
-          <strong>{provider.name}</strong><Show when={provider.account}> <span>({provider.account})</span></Show><Show when={provider.stale}> <span class="usage-bars-stale">Stale</span></Show>
-          <Show when={providerSummary(provider, now())}>{summary =>
-            <strong class="usage-bars-provider-percent" style={{ color: summary().color }} aria-label={`${summary().label}: ${summary().remaining}% left${provider.summaryPace === "worst" ? "; color reflects the worst window pace" : ""}`}>
-              {summary().remaining}% left
-            </strong>
-          }</Show>
-        </summary>
-        <Show when={provider.error && provider.windows?.length}>
-          <p class="usage-bars-notice" role="status">{provider.error} · Showing last known usage<Show when={provider.lastSuccessAt}> from {time(provider.lastSuccessAt!)}</Show>.</p>
-        </Show>
-        <Show when={provider.windows?.length} fallback={<p>{provider.error ?? "No usage data"}</p>}>
-          <For each={provider.windows}>{window => <WindowBar window={window} now={now()} />}</For>
-        </Show>
-      </details>}</For>
-    </Show>
-    <Show when={usage.error && usage.providers?.length}><p role="status">{usage.error}</p></Show>
-    <div class="usage-bars-footer">
-      <Show when={usage.updatedAt} fallback={<span />}>
-        <button class="usage-bars-updated" onClick={() => ctx.stores.display.update(state => { state.hour12 = !state.hour12 })} aria-label={`Last checked ${time(usage.updatedAt!)}. Switch to ${ctx.stores.display.value.hour12 ? "24" : "12"}-hour clock.`}>
-          Last checked {time(usage.updatedAt!)}
-        </button>
+    <div class="usage-bars-content">
+      <div class="usage-bars-row">
+        <div class="usage-bars-heading"><h2>Usage limits</h2><Show when={sourceName() && !ctx.stores.display.value.hideServerName}><span class="usage-bars-source">{sourceName()}</span></Show></div>
+        <button class="usage-bars-refresh" disabled={busy()} aria-busy={busy()} onClick={() => refresh()} title="Fetch fresh usage from the selected session's server"><UsageIcon kind="refresh" />{busy() ? "Loading…" : "Refresh"}</button>
+      </div>
+      <Show when={error()}><p role="status">{error()}</p></Show>
+      <Show when={usage.providers?.length} fallback={<p>{usage.error ?? "No connected usage providers"}</p>}>
+        <For each={usage.providers?.filter(provider => !provider.retrying || provider.windows?.length)}>{provider => <details open class="usage-bars-provider">
+          <summary>
+            <strong>{provider.name}</strong><Show when={provider.account}> <span>({provider.account})</span></Show><Show when={provider.stale}> <span class="usage-bars-stale">Stale</span></Show>
+            <Show when={providerSummary(provider, now())}>{summary =>
+              <strong class="usage-bars-provider-percent" style={{ color: summary().color }} aria-label={`${summary().label}: ${summary().remaining}% left${provider.summaryPace === "worst" ? "; color reflects the worst window pace" : ""}`}>
+                {summary().remaining}% left
+              </strong>
+            }</Show>
+          </summary>
+          <Show when={provider.error && provider.windows?.length}>
+            <p class="usage-bars-notice" role="status">{provider.error} · Showing last known usage<Show when={provider.lastSuccessAt}> from {time(provider.lastSuccessAt!)}</Show>.</p>
+          </Show>
+          <Show when={provider.windows?.length} fallback={<p>{provider.error ?? "No usage data"}</p>}>
+            <For each={provider.windows}>{window => <WindowBar window={window} now={now()} />}</For>
+          </Show>
+        </details>}</For>
       </Show>
-      <DisplaySettings />
+      <Show when={usage.error && usage.providers?.length}><p role="status">{usage.error}</p></Show>
+      <div class="usage-bars-footer">
+        <Show when={usage.updatedAt} fallback={<span />}>
+          <button class="usage-bars-updated" onClick={() => ctx.stores.display.update(state => { state.hour12 = !state.hour12 })} aria-label={`Last checked ${time(usage.updatedAt!)}. Switch to ${ctx.stores.display.value.hour12 ? "24" : "12"}-hour clock.`}>
+            Last checked {time(usage.updatedAt!)}
+          </button>
+        </Show>
+        <DisplaySettings />
+      </div>
     </div>
   </section>
 }
@@ -186,7 +192,8 @@ export default Plugin.define({
   ...definition,
   setup(ctx) {
     ctx.add(Style, `
-      .usage-bars-view { position: relative; container-type: inline-size; padding: 10px 12px; overflow: auto; height: 100%; color: inherit; font-size: 12px; line-height: 1.4; }
+      .usage-bars-view { position: relative; display: flex; flex-direction: column; box-sizing: border-box; container-type: inline-size; padding: 10px 12px; overflow: auto; height: 100%; min-height: 0; color: inherit; font-size: 12px; line-height: 1.4; }
+      .usage-bars-content { flex: 0 0 auto; margin-top: auto; }
       .usage-bars-reset-measure { position: absolute; left: 0; top: 0; display: grid; grid-template-columns: max-content; width: max-content; visibility: hidden; pointer-events: none; font-size: 11px; font-variant-numeric: tabular-nums; }
       .usage-bars-view h2 { margin: 0; font-size: 13px; font-weight: 600; }
       .usage-bars-view p { margin: 4px 0 0; }
@@ -237,10 +244,8 @@ export default Plugin.define({
     const open = () => {
       const session = ctx.sessions.current()
       if (session) ctx.layout.open(`${ctx.id}:limits`, session)
-      else ctx.layout.settings("usage-limits")
     }
-    ctx.add(Command, { id: "open", title: "Open usage limits", keywords: "quota remaining codex go", run: open })
-    ctx.add(MenuItem, (): MenuItem => ({ menu: "session.panel", id: "limits", title: "Usage limits", opened: !!ctx.sessions.current() && ctx.layout.state(`${ctx.id}:limits`, ctx.sessions.current()!) !== "closed", run: open }))
-    ctx.add(SettingsPage, { id: "usage-limits", title: "Usage limits", render: () => <UsageView /> })
+    ctx.add(Command, (): Command => ({ id: "open", title: "Open usage limits", keywords: "quota remaining claude codex go", enabled: !!ctx.sessions.current(), run: open }))
+    ctx.add(MenuItem, (): MenuItem => ({ menu: "session.panel", id: "limits", title: "Usage limits", order: 1000, icon: "window-analytics", opened: !!ctx.sessions.current() && ctx.layout.state(`${ctx.id}:limits`, ctx.sessions.current()!) !== "closed", run: open }))
   },
 })

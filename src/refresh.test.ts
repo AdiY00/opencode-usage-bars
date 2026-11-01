@@ -79,6 +79,19 @@ test("disk failures do not destroy successful RPC readings", async () => {
   expect(errors).toHaveLength(1)
 })
 
+test("quiet retries survive RPC output and preserve stale usage without an error message", () => {
+  const previous = mergeReadings([], [good], "first")
+  const retrying = { ...good, windows: undefined, retrying: true }
+  const stale = mergeReadings(previous, [retrying], "second")
+  expect(usageOutput({ providers: stale }).providers![0]).toMatchObject({ retrying: true, stale: true, windows: good.windows, lastSuccessAt: "first" })
+  expect(stale[0]!.error).toBeUndefined()
+  const pending = mergeReadings([], [retrying], "second")[0]!
+  expect(pending.windows).toBeUndefined()
+  expect(pending.lastSuccessAt).toBeUndefined()
+  expect(mergeReadings(stale, [good], "third")[0]).toMatchObject({ stale: false, lastSuccessAt: "third" })
+  expect(mergeReadings(stale, [good], "third")[0]!.retrying).toBeUndefined()
+})
+
 test("unexpected load failures are marked stale without exposing exception details", async () => {
   let failed = false
   const usage = createUsageRefresh({

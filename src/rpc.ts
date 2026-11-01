@@ -9,6 +9,7 @@ export const usageSchema = z.object({
     id: z.string().optional(),
     integrationID: z.string().optional(),
     error: z.string().optional(),
+    retrying: z.boolean().optional(),
     stale: z.boolean().optional(),
     lastSuccessAt: z.string().optional(),
     lastAttemptAt: z.string().optional(),

@@ -12,7 +12,7 @@ export function mergeReadings(previous: ProviderUsage[], readings: ProviderUsage
     return key && provider.windows?.length ? [[key, provider] as const] : []
   }))
   return readings.map(provider => {
-    if (!provider.error) return { ...provider, stale: false, lastSuccessAt: attemptedAt, lastAttemptAt: attemptedAt }
+    if (!provider.error && !provider.retrying) return { ...provider, stale: false, lastSuccessAt: attemptedAt, lastAttemptAt: attemptedAt }
     const key = sourceKey(provider)
     const old = key ? lastGood.get(key) : undefined
     if (!old) return { ...provider, lastAttemptAt: attemptedAt }

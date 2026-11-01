@@ -10,6 +10,9 @@ export type UsageProvider = {
   sources: (context: Plugin.Context) => Promise<UsageSource[]>
 }
 
+// Expected temporary unavailability: preserve last-known readings without an alert.
+export class UsageDeferred extends Error {}
+
 export async function loadProvider(provider: UsageProvider, context: Plugin.Context): Promise<ProviderUsage[]> {
   try {
     const sources = await provider.sources(context)
@@ -17,6 +20,7 @@ export async function loadProvider(provider: UsageProvider, context: Plugin.Cont
       try {
         return { name: provider.name, ...source, windows: await fetch() }
       } catch (error) {
+        if (error instanceof UsageDeferred) return { name: provider.name, ...source, retrying: true }
         return { name: provider.name, ...source, error: message(error) }
       }
     }))
