@@ -53,6 +53,7 @@ The countdown uses an hourglass icon; the reset date and time use a calendar ico
 
 - **Codex:** 5-hour and weekly limits, with support for multiple accounts and their stored OpenCode account labels.
 - **OpenCode Go:** rolling, weekly, and monthly limits.
+- **Claude Agent:** Claude Code subscription session and weekly limits, including per-model weekly limits when available. Connect Claude Agent in OpenCode and run `claude auth login` on the server machine. Credentials are read from `$CLAUDE_CONFIG_DIR/.credentials.json` or `~/.claude/.credentials.json`; on macOS, the default login is read from the Keychain. Custom macOS config directories currently require a credentials file. The plugin does not refresh tokens: run `claude` if the login expires. This provider uses an undocumented Anthropic endpoint, which can change without notice.
 
 ## Development
 
